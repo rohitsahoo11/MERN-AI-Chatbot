@@ -20,7 +20,7 @@ export const userSignup = async (req:Request, res:Response, next:NextFunction) =
     // get user from database
     try {
         const {name, email, password} = req.body
-        const existingUser = await User.findOne({email})
+        const existingUser = await User.findOne({ email })
         if(existingUser) return res.status(401).send("User already exists")
         const hashedPassword = await hash(password, 10)
         const user = new User({name, email, password: hashedPassword})
@@ -28,14 +28,23 @@ export const userSignup = async (req:Request, res:Response, next:NextFunction) =
        
         //create token and store cookie
         res.clearCookie(COOKIE_NAME, {
-            path: "/",
             httpOnly: true,
             domain: "localhost",
             signed: true,
+            path: "/",
         })
+        const token = createToken(user._id.toString(), user.email, "7d");
+        const expires = new Date();
+        expires.setDate(expires.getDate() + 7);
+        res.cookie(COOKIE_NAME, token, {
+        path: "/",
+        domain: "localhost",
+        expires,
+        httpOnly: true,
+        signed: true,
+    });
 
-
-        return res.status(201).json({message: "Ok", id: user._id.toString()})
+        return res.status(201).json({message: "Ok", name: user.name, email: user.email})
     } catch (error) {
         console.log(error)
         return res.status(200).json({message: "Error", cause: error.message})
@@ -74,7 +83,7 @@ export const userLogin = async (req:Request, res:Response, next:NextFunction) =>
             httpOnly: true,
             signed:true,
         })
-        return res.status(200).json({message: "Ok", id: user._id.toString()})
+        return res.status(200).json({message: "Ok", name: user.name, email: user.email})
     } catch (error) {
         console.log(error)
         return res.status(200).json({message: "Error", cause: error.message})
